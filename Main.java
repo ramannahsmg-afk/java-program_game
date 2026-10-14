@@ -1,4 +1,6 @@
 import java.awt.*;
+
+
 import javax.swing.*;
 
 public class Main {
@@ -18,6 +20,7 @@ public class Main {
         window.setSize(boardWidth, boardHeight);
         window.setLocationRelativeTo(null);
         window.setResizable(false);
+        window.setResizable(true);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         //CREATION OF MENU (panel)
@@ -63,6 +66,7 @@ public class Main {
 
         
         //CREATION OF GAME SCENE (panel)
+
         JPanel game = new JPanel(scene);
         game.setBackground(Color.black);
         game.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
@@ -75,6 +79,20 @@ public class Main {
         backg.addActionListener(e ->{
             scene.show(window.getContentPane(), "menu");
         });
+
+        BackgroundPanel game = new BackgroundPanel();
+        game.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
+
+
+        JButton backg = new JButton("BACK");
+        backg.setFont(new Font("sans-serif", Font.BOLD,16));
+        backg.setPreferredSize(new Dimension(100,50));
+        game.add(backg);
+
+        backg.addActionListener(e->{
+            scene.show(window.getContentPane(),"menu");
+        });
+
 
         //CREATION OF SETTINGS (panel)
         JPanel settings = new JPanel(scene);
@@ -96,8 +114,31 @@ public class Main {
         scenePanel.add(settings, "settings");
 
 
+
+
+
         //SHOWING THE WINDOW
         window.setContentPane(scenePanel);
         window.setVisible(true);
     }
+
 }
+
+
+
+class BackgroundPanel extends JPanel {
+    Image img = new ImageIcon("Assets/forest.png").getImage(); 
+
+    @Override
+
+protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            g.drawImage(img, 0, 0, getWidth(), getHeight(), this);
+
+            g.setColor(Color.RED);
+            g.fillRect(50,770, 130,270);
+            
+    }
+}
+
+
