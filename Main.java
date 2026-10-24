@@ -359,7 +359,70 @@ class BackgroundPanel extends JPanel {
 
 
     //CHARACTER IMAGE 
-    Image player = new ImageIcon("Assets/Player/knight/Idle/knight1.png").getImage();
+    Image[] knightidleFrames = {
+    new ImageIcon("Assets/Player/knight/Idle/knight1.png").getImage(),
+    new ImageIcon("Assets/Player/knight/Idle/knight2.png").getImage(),
+    new ImageIcon("Assets/Player/knight/Idle/knight3.png").getImage(),
+    new ImageIcon("Assets/Player/knight/Idle/knight4.png").getImage(),
+    new ImageIcon("Assets/Player/knight/Idle/knight5.png").getImage()
+    };
+
+
+    //CM IMAGE 
+    Image[] cmidleframes = {
+    new ImageIcon ("Assets/Enemies/cm/idle/cm1.png").getImage(),
+    new ImageIcon ("Assets/Enemies/cm/idle/cm2.png").getImage(),
+    new ImageIcon ("Assets/Enemies/cm/idle/cm3.png").getImage(),
+    new ImageIcon ("Assets/Enemies/cm/idle/cm4.png").getImage(),
+    new ImageIcon ("Assets/Enemies/cm/idle/cm5.png").getImage(),
+    new ImageIcon ("Assets/Enemies/cm/idle/cm6.png").getImage(),
+    new ImageIcon ("Assets/Enemies/cm/idle/cm7.png").getImage(),
+    new ImageIcon ("Assets/Enemies/cm/idle/cm8.png").getImage(),
+    };
+
+    //M IMAGE 
+    Image[] midleframes = {
+    new ImageIcon ("Assets/Enemies/m/idle/m1.png").getImage(),
+    new ImageIcon ("Assets/Enemies/m/idle/m2.png").getImage(),
+    new ImageIcon ("Assets/Enemies/m/idle/m3.png").getImage(),
+    new ImageIcon ("Assets/Enemies/m/idle/m4.png").getImage(),
+    new ImageIcon ("Assets/Enemies/m/idle/m5.png").getImage(),
+    new ImageIcon ("Assets/Enemies/m/idle/m6.png").getImage(),
+    new ImageIcon ("Assets/Enemies/m/idle/m7.png").getImage(),
+    new ImageIcon ("Assets/Enemies/m/idle/m8.png").getImage(),
+    };
+
+
+    //WITCHS IAMGE
+    Image[] witchsidleframes = {
+    new ImageIcon ("Assets/Enemies/witchs/idle/witchs1.png").getImage(),
+    new ImageIcon ("Assets/Enemies/witchs/idle/witchs2.png").getImage(),
+    new ImageIcon ("Assets/Enemies/witchs/idle/witchs3.png").getImage(),
+    new ImageIcon ("Assets/Enemies/witchs/idle/witchs4.png").getImage(),
+    new ImageIcon ("Assets/Enemies/witchs/idle/witchs5.png").getImage(),
+    };
+
+    // KNIGHT ANIMATION VARIABLES
+    int knightcurrentframe = 0;
+    int knightanimationcounter = 0;
+    int knightanimationdelay = 8;
+
+    //CM ANIMATION VARIABLES
+    int cmcurrentframe = 0;
+    int cmanimationcounter = 0;
+    int cmanimationdelay = 8;
+
+    //M ANIMATON VARIABLES
+    int mcurrentframe = 0;
+    int manimationcounter = 0;
+    int manimationdelay = 8;
+
+
+    //M ANIMATON VARIABLES
+    int witchscurrentframe = 0;
+    int witchsanimationcounter = 0;
+    int witchsanimationdelay = 10;
+
 
     //CHRATER CONTROLLER VARIABLES
     int x = 100;
@@ -467,6 +530,59 @@ class BackgroundPanel extends JPanel {
             //SCREEN BOUNDARIES
             x = Math.max(0, Math.min(x, getWidth() - 100));
 
+            //PLAYER IDLE ANIMATION
+            knightanimationcounter++;
+
+            if (knightanimationcounter >= knightanimationdelay) {
+                knightcurrentframe++;
+
+                if (knightcurrentframe >= knightidleFrames.length) {
+                    knightcurrentframe = 0;
+                }
+
+                knightanimationcounter = 0;
+            }
+
+            //CM IDLE ANIMATION
+            cmanimationcounter++;
+
+            if (cmanimationcounter >= cmanimationdelay) {
+                cmcurrentframe++;
+
+                if (cmcurrentframe >= cmidleframes.length) {
+                    cmcurrentframe = 0;
+                }
+
+                cmanimationcounter = 0;
+            }
+
+            //M IDLE ANIMATION  
+            manimationcounter++;
+
+            if (manimationcounter >= manimationdelay) {
+                mcurrentframe++;
+
+                if (mcurrentframe >= midleframes.length) {
+                    mcurrentframe = 0;
+                }
+
+                manimationcounter = 0;
+            }
+
+             //WITCHS IDLE ANIMATION  
+            witchsanimationcounter++;
+
+            if (witchsanimationcounter >= witchsanimationdelay) {
+                witchscurrentframe++;
+
+                if (witchscurrentframe >= witchsidleframes.length) {
+                    witchscurrentframe = 0;
+                }
+
+                witchsanimationcounter = 0;
+            }
+
+
             repaint();
         });
 
@@ -482,10 +598,22 @@ class BackgroundPanel extends JPanel {
 
         //PAINTING THE ELEMENTS
         g.drawImage(backgrounds[currentScene],0, 0, getWidth(), getHeight(), this);
-        g.drawImage(player, x, y, 200, 200, this);
 
+        g.drawImage(knightidleFrames[knightcurrentframe],x, y,200, 200,this);
 
+        if(currentScene == 1){
+        g.drawImage(cmidleframes[cmcurrentframe], 900, 690,300, 300,this);
+        }
 
+        if(currentScene == 3){
+        g.drawImage(midleframes[mcurrentframe], 1200, 690,500, 500,this);
+        }
+
+        if(currentScene == 5){
+        g.drawImage(witchsidleframes[witchscurrentframe], 1200, 600,400, 400,this);
+        }
+        
 
     }
+
 }
