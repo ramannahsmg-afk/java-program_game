@@ -2,6 +2,9 @@ import java.awt.*;
 import java.io.*;
 import javax.sound.sampled.*;
 import javax.swing.*;
+import java.awt.event.*;
+
+
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -93,10 +96,10 @@ public class Main {
         game.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
 
         //BACK BUTTON
-        JButton backg = new JButton("BACK");
-        backg.setFont(new Font("sans-serif", Font.BOLD,16)); 
-        backg.setPreferredSize(new Dimension(100, 50));
-        game.add(backg);
+        //JButton backg = new JButton("BACK");
+        //backg.setFont(new Font("sans-serif", Font.BOLD,16)); 
+        //backg.setPreferredSize(new Dimension(100, 50));
+        //game.add(backg);
 
         //ACTIONS IN GAME SCENE
         play.addActionListener(e ->{
@@ -104,9 +107,9 @@ public class Main {
             game.requestFocusInWindow();
         });
 
-        backg.addActionListener(e ->{
-            scene.show(window.getContentPane(), "menu");
-        });
+        //backg.addActionListener(e ->{
+         //   scene.show(window.getContentPane(), "menu");
+        //});
 
         
 
@@ -142,7 +145,7 @@ public class Main {
 
         //SOUND CONTROL CODE
         Clip music = AudioSystem.getClip();
-        AudioInputStream audio = AudioSystem.getAudioInputStream(new File("Assets/Music/mainmenu.wav"));
+        AudioInputStream audio = AudioSystem.getAudioInputStream(new File("Assets/Music/background.wav"));
 
         music.open(audio);
         music.loop(Clip.LOOP_CONTINUOUSLY);
@@ -402,7 +405,14 @@ class BackgroundPanel extends JPanel {
     new ImageIcon ("Assets/Enemies/witchs/idle/witchs5.png").getImage(),
     };
 
-    // KNIGHT ANIMATION VARIABLES
+    // PROJECTILE SPRITESHEETS
+    Image[] cmProjectile = {
+    new ImageIcon ("Assets/Projectile/cm/sword.png").getImage(),
+    new ImageIcon ("Assets/Projectile/cm/branch.png").getImage()
+    };
+
+
+    //KNIGHT ANIMATION VARIABLES
     int knightcurrentframe = 0;
     int knightanimationcounter = 0;
     int knightanimationdelay = 8;
@@ -418,16 +428,16 @@ class BackgroundPanel extends JPanel {
     int manimationdelay = 8;
 
 
-    //M ANIMATON VARIABLES
+    //WITCHS ANIMATON VARIABLES
     int witchscurrentframe = 0;
     int witchsanimationcounter = 0;
     int witchsanimationdelay = 10;
-
 
     //CHRATER CONTROLLER VARIABLES
     int x = 100;
     int y = 750;
     int speed = 5;
+    boolean facingRight = true;
 
     boolean left = false;
     boolean right = false;
@@ -435,6 +445,70 @@ class BackgroundPanel extends JPanel {
 
     int velocityY = 0;
     int groundY = 750;
+
+
+    //HEALTH SYSTEM VARIABLES
+    int playerMaxHealth = 100;
+    int playerHealth = 100;
+
+
+    //PLAYER COLLISION VARIABLES
+    int playerHitboxWidth = 100;
+    int playerHitboxHeight = 150;
+    int playerHitboxOffsetX = 50;
+    int playerHitboxOffsetY = 40;
+
+    // PLAYER ATTACK VARIABLES
+    int playerAttackDamage = 50;
+    int playerAttackRange = 140;
+
+    int attackCooldown = 0;
+    int attackCooldownDuration = 25; // About 0.4 seconds
+    int attackEffectTimer = 0;
+
+    //DAMAGE COOLDOWN
+    int damageCooldown = 0;
+    int damageCooldownDuration = 60; 
+
+    //ENEMY ATTACK VARIABLES
+    int enemyAttackCooldown = 0;
+    int enemyAttackInterval = 120; 
+    int projectileSpeed = 8;
+    int projectileDamage = 10;
+
+    //PROJECTILE POSITION AND STATE VARIABLES
+    int projectileX = 0;
+    int projectileY = 0;
+    int projectileSize = 30;
+    boolean projectileActive = false;
+    int projectileScene = -1;
+    int projectileDirection = -1;
+
+    //DEATH STATE
+    boolean playerDead = false;
+
+
+    // ENEMY FALLEN MESSAGE TIMER
+    long enemyFallenTime = 0;
+
+
+    int cmMaxHealth = 350;
+    int cmHealth = 350;
+
+    int mMaxHealth = 500;
+    int mHealth = 500;
+
+    int witchsMaxHealth = 750;
+    int witchsHealth = 750;
+
+    boolean cmAlive = true;
+    boolean mAlive = true;
+    boolean witchsAlive = true;
+
+
+    int cmRange = 1100;
+    int mRange = 800;
+    int witchsRange = 900;
 
     public BackgroundPanel() {
 
@@ -479,7 +553,7 @@ class BackgroundPanel extends JPanel {
         getActionMap().put("jump", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (y == groundY) {
+                if (!playerDead && y == groundY) {
                     velocityY = -15;
                 }
             }
@@ -502,6 +576,21 @@ class BackgroundPanel extends JPanel {
                     x = getWidth() - 200;
                 }
 
+
+        // PLAYER ATTACK: LEFT MOUSE BUTTON
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    attackPlayer();
+                }
+            }
+        });
+
+
+
+
+
                 repaint();
     }
 });
@@ -509,12 +598,16 @@ class BackgroundPanel extends JPanel {
         // GAME LOOP
         Timer timer = new Timer(16, e -> {
 
-            if (left) {
-                x -= speed;
-            }
-
+            if (!playerDead) {
+                if (left) {
+                    x -= speed;
+                    facingRight = false;
+                }
+            
             if (right) {
-                x += speed;
+                    x += speed;
+                    facingRight = true;
+                }
             }
 
             //SIMPLE GRAVITY
@@ -527,8 +620,32 @@ class BackgroundPanel extends JPanel {
                 velocityY = 0;
             }
 
+            
             //SCREEN BOUNDARIES
             x = Math.max(0, Math.min(x, getWidth() - 100));
+
+            //ENEMY ATTCK COOLDOWN
+            if (damageCooldown > 0) {
+                damageCooldown--;
+            }
+
+            if (enemyAttackCooldown > 0) {
+                enemyAttackCooldown--;
+            }
+
+            // PLAYER ATTACK COOLDOWN
+            if (attackCooldown > 0) {
+                attackCooldown--;
+            }
+
+            // ATTACK EFFECT TIMER
+            if (attackEffectTimer > 0) {
+                attackEffectTimer--;
+            }
+
+            checkEnemyCollision();
+            tryEnemyAttack();
+            updateProjectile();
 
             //PLAYER IDLE ANIMATION
             knightanimationcounter++;
@@ -586,10 +703,249 @@ class BackgroundPanel extends JPanel {
             repaint();
         });
 
+        
+
         timer.start();
     }
 
+    private void drawHealthBar(Graphics2D g2, int x, int y,int width, int height,int currentHealth, int maxHealth,Color barColor) {
+
+    g2.setColor(new Color(45, 20, 20));
+    g2.fillRect(x, y, width, height);
+
+
+    double healthPercent = Math.max(0.0,Math.min(1.0, (double) currentHealth / maxHealth));
+
+    g2.setColor(barColor);
+    g2.fillRect(x, y, (int) (width * healthPercent), height);
+
+
+    g2.setColor(Color.WHITE);
+    g2.drawRect(x, y, width, height);
     
+    }
+
+    //COLLIDING METHOD
+    private boolean isColliding(int x1, int y1, int width1, int height1,int x2, int y2, int width2, int height2) {
+
+    Rectangle a = new Rectangle(x1, y1, width1, height1);
+    Rectangle b = new Rectangle(x2, y2, width2, height2);
+
+    return a.intersects(b);
+}
+
+    //PLAYER HITBOX
+    private Rectangle getPlayerHitbox() {
+    return new Rectangle(
+        x + playerHitboxOffsetX,
+        y + playerHitboxOffsetY,
+        playerHitboxWidth,
+        playerHitboxHeight
+    );
+}
+
+    //APPLY DAMAGE TO PLAYER
+    private void takeDamage(int damage) {
+    if (playerDead || damageCooldown > 0) {
+        return;
+    }
+
+    playerHealth = Math.max(0, playerHealth - damage);
+    damageCooldown = damageCooldownDuration;
+
+    if (playerHealth <= 0) {
+        playerDead = true;
+        left = false;
+        right = false;
+        projectileActive = false;
+    }
+}
+
+    //CHECK PLAYER-ENEMY CONTACT
+    private void checkEnemyCollision() {
+    if (playerDead || damageCooldown > 0) {
+        return;
+    }
+
+    Rectangle player = getPlayerHitbox();
+
+    if (currentScene == 1 && cmAlive && isColliding(player.x, player.y, player.width, player.height,1350, 650, 300, 300)) {
+        takeDamage(10);
+    }
+
+    else if (currentScene == 3 && mAlive && isColliding(player.x, player.y, player.width, player.height,1250, 590, 500, 500)) {
+        takeDamage(10);
+    }
+
+    else if (currentScene == 5 && witchsAlive && isColliding(player.x, player.y, player.width, player.height,1200, 520, 400, 400)) {
+        takeDamage(10);
+    }
+}
+
+    // START AN ENEMY PROJECTILE ATTACK
+    private void tryEnemyAttack() {
+    if (playerDead || projectileActive || enemyAttackCooldown > 0) {
+        return;
+    }
+
+    int enemyX;
+    int enemyWidth;
+    int enemyCenterY;
+    int attackRange;
+
+    if (currentScene == 1 && cmAlive) {
+        enemyX = 1350;
+        enemyWidth = 300;
+        enemyCenterY = 800;
+        attackRange = cmRange;
+    }
+    else if (currentScene == 3 && mAlive) {
+        enemyX = 1250;
+        enemyWidth = 500;
+        enemyCenterY = 840;
+        attackRange = mRange;
+    }
+    else if (currentScene == 5 && witchsAlive) {
+        enemyX = 1200;
+        enemyWidth = 400;
+        enemyCenterY = 720;
+        attackRange = witchsRange;
+    }
+    else {
+        return;
+    }
+
+    int enemyCenterX = enemyX + enemyWidth / 2;
+
+    if (Math.abs((x + 100) - enemyCenterX) > attackRange) {
+        return;
+    }
+
+    //Shoot towards the player's current position.
+    projectileDirection = (x + 100 < enemyCenterX) ? -1 : 1;
+
+    projectileX = projectileDirection < 0 ? enemyX : enemyX + enemyWidth;
+
+    // Aim at the player's current vertical position.
+    projectileY = y + playerHitboxOffsetY + playerHitboxHeight / 2 - projectileSize / 2;
+
+    projectileScene = currentScene;
+    projectileActive = true;
+    enemyAttackCooldown = enemyAttackInterval;
+}
+
+    //UPDATE PROJECTILE AND CHECK HIT
+    private void updateProjectile() {
+    if (!projectileActive) {
+        return;
+    }
+
+    // Remove projectiles when changing scenes.
+    if (projectileScene != currentScene || playerDead) {
+        projectileActive = false;
+        return;
+    }
+
+    projectileX += projectileDirection * projectileSpeed;
+
+    Rectangle projectile = new Rectangle(
+        projectileX, projectileY,
+        projectileSize, projectileSize
+    );
+
+    if (projectile.intersects(getPlayerHitbox())) {
+        takeDamage(projectileDamage);
+        projectileActive = false;
+        return;
+    }
+
+    // Remove projectiles that leave the screen.
+    if (projectileX < -projectileSize ||
+        projectileX > getWidth() + projectileSize) {
+        projectileActive = false;
+    }
+}
+
+// PLAYER ATTACK HITBOX
+private Rectangle getAttackHitbox() {
+    int attackY = y + 60;
+
+    if (facingRight) {
+        return new Rectangle(
+            x + 130,
+            attackY,
+            playerAttackRange,
+            100
+        );
+    } else {
+        return new Rectangle(
+            x - playerAttackRange + 70,
+            attackY,
+            playerAttackRange,
+            100
+        );
+    }
+}
+
+    // PLAYER ATTACK METHOD
+    private void attackPlayer() {
+    if (playerDead || attackCooldown > 0) {
+        return;
+    }
+
+    attackCooldown = attackCooldownDuration;
+    attackEffectTimer = 8;
+
+    Rectangle attackHitbox = getAttackHitbox();
+
+    // CORRUPTED MONK — SCENE 1
+    if (currentScene == 1 && cmAlive) {
+        if (attackHitbox.intersects(
+                new Rectangle(1350, 650, 300, 300))) {
+
+            cmHealth -= playerAttackDamage;
+
+            if (cmHealth <= 0) {
+                cmHealth = 0;
+                cmAlive = false;
+                enemyFallenTime = System.currentTimeMillis();
+            }
+        }
+    }
+
+    // MEARL — SCENE 3
+    else if (currentScene == 3 && mAlive) {
+        if (attackHitbox.intersects(
+                new Rectangle(1250, 590, 500, 500))) {
+
+            mHealth -= playerAttackDamage;
+
+            if (mHealth <= 0) {
+                mHealth = 0;
+                mAlive = false;
+                enemyFallenTime = System.currentTimeMillis();
+            }
+        }
+    }
+
+    // WITCH WELM — SCENE 5
+    else if (currentScene == 5 && witchsAlive) {
+        if (attackHitbox.intersects(
+                new Rectangle(1200, 520, 400, 400))) {
+
+            witchsHealth -= playerAttackDamage;
+
+            if (witchsHealth <= 0) {
+                witchsHealth = 0;
+                witchsAlive = false;
+                enemyFallenTime = System.currentTimeMillis();
+            }
+        }
+    }
+
+    repaint();
+}
+
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -599,21 +955,185 @@ class BackgroundPanel extends JPanel {
         //PAINTING THE ELEMENTS
         g.drawImage(backgrounds[currentScene],0, 0, getWidth(), getHeight(), this);
 
-        g.drawImage(knightidleFrames[knightcurrentframe],x, y,200, 200,this);
-
-        if(currentScene == 1){
-        g.drawImage(cmidleframes[cmcurrentframe], 900, 690,300, 300,this);
+        if (facingRight) {
+            g.drawImage(knightidleFrames[knightcurrentframe],x, y, 200, 200, this);
+        } else {
+        g.drawImage(knightidleFrames[knightcurrentframe],x + 200, y, -200, 200, this);
         }
 
-        if(currentScene == 3){
-        g.drawImage(midleframes[mcurrentframe], 1200, 690,500, 500,this);
+        // PLAYER ATTACK SLASH EFFECT
+        if (attackEffectTimer > 0) {
+            Graphics2D slash = (Graphics2D) g.create();
+
+            slash.setColor(Color.YELLOW);
+            slash.setStroke(new BasicStroke(6));
+
+                if (facingRight) {
+                    slash.drawArc(x + 100, y + 50,160, 120,300, 120);
+                    } else {
+                        slash.drawArc(x - 60, y + 50,160, 120, 120, 120);
+                    }
+
+                    slash.dispose();
+            }
+
+
+        if(currentScene == 1 && cmAlive){
+        g.drawImage(cmidleframes[cmcurrentframe], 1350, 650,300, 300,this);
         }
 
-        if(currentScene == 5){
-        g.drawImage(witchsidleframes[witchscurrentframe], 1200, 600,400, 400,this);
+        if(currentScene == 3 && mAlive){
+        g.drawImage(midleframes[mcurrentframe], 1250, 590,500, 500,this);
+        }
+
+        if(currentScene == 5 && witchsAlive){
+        g.drawImage(witchsidleframes[witchscurrentframe], 1200, 520,400, 400,this);
         }
         
+        Graphics2D g2 = (Graphics2D) g;
+
+
+        drawHealthBar(g2,30, 40,250, 22,playerHealth,playerMaxHealth,Color.RED);
+
+        // ENEMY HEALTH BAR — BOTTOM OF SCREEN
+        int barWidth = 600;
+        int barHeight = 18;
+        int barX = (getWidth() - barWidth) / 2;
+        int barY = getHeight() - 150;
+
+
+        // ENEMY FALLEN MESSAGE
+        boolean enemyFallen =
+            (currentScene == 1 && !cmAlive) ||
+            (currentScene == 3 && !mAlive) ||
+            (currentScene == 5 && !witchsAlive);
+
+        if (enemyFallen &&
+            System.currentTimeMillis() - enemyFallenTime < 1000) {
+
+            Graphics2D fallenGraphics = (Graphics2D) g.create();
+
+            fallenGraphics.setColor(new Color(0, 0, 0, 180));
+            fallenGraphics.fillRect(0, 0, getWidth(), getHeight());
+
+            fallenGraphics.setColor(Color.YELLOW);
+            fallenGraphics.setFont(
+                new Font("sans-serif", Font.BOLD, 60)
+            );
+
+            String message = "ENEMY FALLEN";
+            FontMetrics fm = fallenGraphics.getFontMetrics();
+
+            int textX = (getWidth() - fm.stringWidth(message)) / 2;
+            int textY = getHeight() / 2;
+
+            fallenGraphics.drawString(message, textX, textY);
+            fallenGraphics.dispose();
+        }
+                
+
+    
+        // CM enemy — scene 1
+        if (currentScene == 1 && cmAlive) {
+
+            int enemyX = 1350;
+            int distance = Math.abs(x - enemyX);
+
+            if (distance <= cmRange) {
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("sans-serif", Font.BOLD, 20));
+                g2.drawString("CORRUPTED MONK", barX, barY - 10);
+
+                drawHealthBar(
+                    g2, barX, barY, barWidth, barHeight,
+                    cmHealth, cmMaxHealth, Color.RED
+                );
+            }
+        }
+
+        // M enemy — scene 3
+        if (currentScene == 3 && mAlive) {
+
+            int enemyX = 1250;
+            int distance = Math.abs(x - enemyX);
+
+            if (distance <= mRange) {
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("sans-serif", Font.BOLD, 20));
+                g2.drawString("MEARL", barX, barY - 10);
+
+                drawHealthBar(
+                    g2, barX, barY, barWidth, barHeight,
+                    mHealth, mMaxHealth, Color.RED
+                );
+            }
+        }
+
+        // Witch enemy — scene 5
+        if (currentScene == 5 && witchsAlive) {
+
+            int enemyX = 1200;
+            int distance = Math.abs(x - enemyX);
+
+            if (distance <= witchsRange) {
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("sans-serif", Font.BOLD, 20));
+                g2.drawString("WITCH WELM", barX, barY - 10);
+
+                drawHealthBar(
+                    g2, barX, barY, barWidth, barHeight,
+                    witchsHealth, witchsMaxHealth, Color.RED
+                );
+            }
+        }
+
+            // DRAW ENEMY PROJECTILE
+        if (projectileActive && projectileScene == currentScene) {
+            Graphics2D projectileGraphics = (Graphics2D) g.create();
+
+            projectileGraphics.setColor(Color.ORANGE);
+            projectileGraphics.fillOval(
+                projectileX,
+                projectileY,
+                projectileSize,
+                projectileSize
+            );
+
+            projectileGraphics.setColor(Color.RED);
+            projectileGraphics.drawOval(
+                projectileX,
+                projectileY,
+                projectileSize,
+                projectileSize
+            );
+
+            projectileGraphics.dispose();
+        }
+
+
+
+        if (playerDead) {
+            Graphics2D deathGraphics = (Graphics2D) g.create();
+
+            deathGraphics.setColor(new Color(0, 0, 0, 180));
+            deathGraphics.fillRect(0, 0, getWidth(), getHeight());
+
+            deathGraphics.setColor(Color.RED);
+            deathGraphics.setFont(new Font("sans-serif", Font.BOLD, 60));
+
+            String message = "YOU DIED";
+            FontMetrics metrics = deathGraphics.getFontMetrics();
+
+            int textX = (getWidth() - metrics.stringWidth(message)) / 2;
+            int textY = getHeight() / 2;
+
+            deathGraphics.drawString(message, textX, textY);
+
+            deathGraphics.dispose();
+        }
+
 
     }
+    
 
 }
